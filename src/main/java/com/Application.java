@@ -1,6 +1,7 @@
 package com;
 
 import controller.SupplierController;
+import model.ReturnObj;
 import model.Supplier;
 
 import static java.util.stream.Collectors.groupingBy;
@@ -44,22 +45,26 @@ class Application {
             		id = params.get("id").get(0);
             		//esse catch é apenas para se o valor do parametro for null
             	} catch (Exception e) { 
-            		String suppliers = SupplierController.List();
-                	if(suppliers != null) {
-                		Response(exchange, 200, suppliers);
+            		ReturnObj suppliers = SupplierController.List();
+            		int code = 0;
+                	if(suppliers.success) {
+                		code = 200;
                 	}
                 	else {
-                		Response(exchange, 404, JsonNotFound);
+                		code = 404;
                 	}
+                	Response(exchange, code, suppliers.text);
             	}
                 	
-            	String supplier = SupplierController.Get(Integer.parseInt(id));
-            	if(supplier != null) {
-            		Response(exchange, 200, supplier);
+            	ReturnObj supplier = SupplierController.Get(Integer.parseInt(id));
+            	int code = 0;
+            	if(supplier.success) {
+            		code = 200;
             	}
             	else { 
-            		Response(exchange, 404, JsonNotFound);
+            		code = 404;
             	}
+            	Response(exchange, code, supplier.text);
             
             } else if (exchange.getRequestMethod().equals("POST")) {
             	String name 	= null;
@@ -76,12 +81,13 @@ class Application {
             		Response(exchange, 400, JsonMA);
             	}
             	
-            	String s = SupplierController.Create(new Supplier(name, Email, Comment, CNPJ));
-            	
-            	if(s != null)
-            		Response(exchange, 200, s);
+            	ReturnObj s = SupplierController.Create(new Supplier(name, Email, Comment, CNPJ));
+            	int code = 0;
+            	if(s.success)
+            		code = 200;
             	else 
-            		Response(exchange, 400, JsonSWW);
+            		code = 400;
+            	Response(exchange, code, s.text);
             	
             	
             } else if (exchange.getRequestMethod().equals("PUT")) {
@@ -107,12 +113,13 @@ class Application {
             		Response(exchange, 400, JsonMA);
             	}
             	
-            	String s = SupplierController.Update(Integer.parseInt(id), new Supplier(name, Email, Comment, CNPJ));
-            	
-            	if(s != null)
-            		Response(exchange, 200, s);
+            	ReturnObj s = SupplierController.Update(Integer.parseInt(id), new Supplier(name, Email, Comment, CNPJ));
+            	int code;
+            	if(s.success)
+            		code = 200;
             	else 
-            		Response(exchange, 400, JsonSWW);
+            		code = 400;
+            	Response(exchange, code, s.text);
             	
             } else if (exchange.getRequestMethod().equals("DELETE")) {
             	String id = null;
@@ -123,9 +130,14 @@ class Application {
             		Response(exchange, 400, JsonMA);
             	}
             	
-            	if(SupplierController.Delete(Integer.parseInt(id)))
-            		Response(exchange, 200, JsonSuccess);
-            	Response(exchange, 400, JsonSWW);
+            	ReturnObj s = SupplierController.Delete(Integer.parseInt(id));
+            	int code;
+            	if(s.success)
+            		code = 200;
+            	else
+            		code = 400;
+            	
+            	Response(exchange, code, s.text);
             } else {
                 exchange.sendResponseHeaders(405, -1);// 405 Method Not Allowed
             }

@@ -1,13 +1,28 @@
 package controller;
 
 import model.Supplier;
+import model.ReturnObj;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 
 
 public class SupplierController {
 	private static ArrayList<Supplier> suppliers = new ArrayList<>();
+	
+	private static String JsonNotFound 	= "{\"error\": \"Not found\"}";
+	private static String JsonCNPJ 		= "{\"error\": \"CNPJ already in use\"}";
+	private static String JsonEmail 	= "{\"error\": \"Invalid Email\"}";
+	private static String JsonSuccess	= "{\"Success\": \"Success\"}";
+	private static String JsonSWW		= "{\"Error\": \"Something went wrong\"}";
+	private static String JsonMA		= "{\"Error\": \"Missing argument\"}";
+	
+	
+	private static final String EMAIL_PATTERN 	= "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
+	        									+ "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
+	private static final Pattern pattern = Pattern.compile(EMAIL_PATTERN, Pattern.CASE_INSENSITIVE);
 	
 	private static int getIncrement() {
 		Supplier s = null;
@@ -27,21 +42,38 @@ public class SupplierController {
 		}
 		return null;
 	}
+	private static Boolean isUsedCNPJ(String CNPJ) {
+		for (Supplier s : suppliers) {
+			if (s.getCNPJ().equals(CNPJ))
+				return true;
+		}
+		return false;
+	}
+	public static boolean isValidMail(String email){
+	    Matcher matcher = pattern.matcher(email);
+	    return matcher.matches();
+	 }
 	
 	
-	public static String Create(Supplier supplier) {
+	
+	
+	public static ReturnObj Create(Supplier supplier) {
+		if(isUsedCNPJ(supplier.getCNPJ()))
+			return new ReturnObj(false, JsonCNPJ);
+		if(!isValidMail(supplier.getEmail()))
+			return new ReturnObj(false, JsonEmail);
 		try {
 		supplier.setId(getIncrement());
 		} catch (Exception e) {
 			System.out.println(e.toString());
 		}
 		if(suppliers.add(supplier))
-			return supplier.toJson();
-		return null;
+			return new ReturnObj(true, supplier.toJson());
+		return new ReturnObj(false, JsonSWW);
 		
 	}
 	
-	public static String List() {
+	public static ReturnObj List() {
 		String json = "[";
 		try {
 			for (Supplier s : suppliers) {
@@ -56,37 +88,44 @@ public class SupplierController {
 			return null;
 		}
 		json += "]";
-		return json.equals("[]") ? null : json;
+		if(json.equals("[]")) {
+			return new ReturnObj(false, JsonNotFound);
+		}
+		return new ReturnObj(true, json);
 	}
 	
-	public static String Get(int id) {
+	public static ReturnObj Get(int id) {
 		try {
-			return find(id).toJson();
+			return new ReturnObj(true, find(id).toJson());
 		} catch(Exception e) {
-			return null;
+			return new ReturnObj(false, JsonNotFound);
 		}
 	}
 	
-	public static String Update (int id, Supplier supplier) {
+	public static ReturnObj Update (int id, Supplier supplier) {
 		supplier.setId(id);
+		if(isUsedCNPJ(supplier.getCNPJ()))
+			return new ReturnObj(false, JsonCNPJ);
+		if(!isValidMail(supplier.getEmail()))
+			return new ReturnObj(false, JsonEmail);
 		try {
 			Supplier s = find(id);
 			s = supplier;
 			suppliers.set(id, s).toJson();
-			return s.toJson();
+			return new ReturnObj(true, s.toJson());
 		}catch (Exception e) {
-			return null;
+			return new ReturnObj (false, JsonNotFound);
 		}
 	}
 	
-	public static boolean Delete(int id) {
+	public static ReturnObj Delete(int id) {
 		try {
 			suppliers.remove(id);
 		} catch (Exception e) {
 			System.out.println(e.toString());
-			return false;
+			return new ReturnObj(false, JsonNotFound);
 		}
-		return true;
+		return new ReturnObj(true, JsonSuccess);
 	}
 
 }
